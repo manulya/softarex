@@ -7,38 +7,45 @@ export default function Navbar(props) {
   const [inputValue, setInputValue] = useState('');
  
   const navigate = useNavigate()
-  const handleSubmit = () => {
-      // позже будет отправка данных
-      navigate("/category")
-      console.log('Отправлено: ', inputValue);
-    };
+  
+  const handleSearch = () => {
+    const query = inputValue; 
+    navigate(`/category?query=${query}`);
+  };
+  const handleSubmit = (event) => {
+    event.preventDefault(); 
+    handleSearch();
+  };
   
     const handleKeyDown = (event) => {
       if (event.key === 'Enter') {
-        handleSubmit();
+        handleSubmit(event);
       }
     };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 500) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+    useEffect(() => {
+      if (!props.scrolled) {
+        const handleScroll = () => {
+          if (window.scrollY > 500) {
+            setIsScrolled(true);
+          } else {
+            setIsScrolled(false);
+          }
+        };
+  
+        window.addEventListener("scroll", handleScroll);
+  
+        return () => window.removeEventListener("scroll", handleScroll);
       }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    }, [props.scrolled]);
+  
 
   return (
     <NavbarContainer isScrolled={isScrolled}>
-<CustomNavlink to="/"><Logo src="https://images.pexels.com/lib/api/pexels-white.png" /></CustomNavlink>
-      <SearchContainer isScrolled={isScrolled} placeholder="Search" role="search">
-        <SearchInput id="search" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} />
-        <SearchButton onClick={handleSubmit}><SvgIcon
+<CustomNavlink to="/">{isScrolled?(<Logo src="https://images.pexels.com/lib/api/pexels.png" />):(<Logo src="https://images.pexels.com/lib/api/pexels-white.png"/>)} </CustomNavlink>
+      <SearchContainer isScrolled={isScrolled} placeholder="Search" onSubmit={handleSubmit}>
+        <SearchInput id="search" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown}/>
+        <SearchButton onClick={handleSubmit}  type="submit" ><SvgIcon
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     width="24"
@@ -80,17 +87,20 @@ left:40px;
   `
 
 const SearchContainer = styled.form`
-  display: ${(props) => (props.isScrolled ? "flex" : "none")};
-  position: relative;
-  width: calc(100% - 120px);
+   display: ${(props) => (props.isScrolled ? "flex" : "none")};
+  position: absolute;
+  left: 180px;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(100% - 220px);
   height: 40px;
-  margin: 0 16px;
   border-radius: 20px;
   padding-right: 100px;
   background-color: #f7f7f7;
   transition: background-color 0.2s ease;
   &:focus-within {
-    border:1px solid #dfdfe0;
+    border: 1px solid #dfdfe0;
     background: #fff;
   }
 `;

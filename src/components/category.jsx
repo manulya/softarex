@@ -1,14 +1,81 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import { Dropdown } from "react-bootstrap";
 import styled from "styled-components";
+import { createClient } from 'pexels';
+import { useLocation } from "react-router-dom";
+import axios from 'axios';
 
-function Category() {
+const Category=()=>{
+
+  const [images, setImages] = useState([]);
+  const location = useLocation();
+const searchParams = new URLSearchParams(location.search);
+
+const [loading, setLoading] = useState(true);
+const [page, setPage] = useState(1);
+const [query, setQuery] = useState(searchParams.get("query"));
+
+
+useEffect(() => {
+  setQuery(searchParams.get("query"));
+}, [location.search]);
+
+
+    useEffect(() => {
+      setImages([]);
+      setPage(1);
+      setLoading(true);
+    }, [query]);
+
+    useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const response = await axios.get(
+          `https://api.pexels.com/v1/search?query=${query}&per_page=15&page=${page}`,
+          {
+            headers: {
+              Authorization: "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf",
+            },
+          }
+        );
+        const newImages = response.data.photos.map((photo) => ({
+          id: photo.id,
+          src: photo.src.large2x,
+          photographer: photo.photographer,
+        }));
+        setImages((prevImages) => [...prevImages, ...newImages]);
+        setLoading(false);
+      } catch (error) {
+        console.log("Error fetching images:", error);
+        setLoading(false);
+      }
+    };
+  
+    fetchImages();
+  }, [page]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+          document.documentElement.offsetHeight - 500 &&
+        !loading
+      ) {
+        setLoading(true);
+        setPage((prevPage) => prevPage + 1);
+      }
+    };
+  
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loading,page,images]); // Добавляем reset в зависимости
+
   return (
     <div>
-      <Navbar scrolled={true} />
+      <Navbar scrolled={true} query={query} />
       <CategoryContainer>
-        <Title> фото New York</Title>
+        <Title> фото {query}</Title>
         <StyledDropdown variant="light">
           <StyledToggle variant="light" id="dropdown-basic">
             Фильтры
@@ -56,6 +123,14 @@ function Category() {
             </Dropdown.Item>
           </Dropdown.Menu>
         </StyledDropdown>
+        <div>
+      <ImageGalleryContainer>
+        {images.map((image) => (
+          <Image key={image.id} src={image.src} alt={image.photographer} />
+        ))}
+      </ImageGalleryContainer>
+      
+    </div>
       </CategoryContainer>
     </div>
   );
@@ -109,4 +184,22 @@ const StyledToggle = styled(Dropdown.Toggle)`
   &.show svg {
     transform: rotate(180deg);
   }
+`;
+const ImageGalleryContainer = styled.div`
+  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+`;
+
+const Image = styled.img`
+  width: 100%;
+  height: 100%;
+`;
+
+const LoadingIndicator = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
 `;

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import Navbar from "./Navbar";
 import search from "../img/search_icon.svg";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Photo } from "pexels";
 import { createClient } from 'pexels';
+import ImageGallery from "./ImageGallery";
 
 const categories = [
     "Automotive",
@@ -58,6 +59,7 @@ const Main=()=> {
     const [imageUrl, setImageUrl] = useState('');
     const [authorName, setAuthorName] = useState('');
     const [currentTendency, setCurrentTendency] = useState('');
+    const navigate = useNavigate();
 
   useEffect(() => {
     const randomTendencies = categories.slice(0).sort(() => Math.random() - 0.5).slice(0, 7);
@@ -77,10 +79,14 @@ const Main=()=> {
    
     const [inputValue, setInputValue] = useState('');
    
-    const handleSubmit = () => {
-        // позже будет отправка данных
-        console.log('Отправлено: ', inputValue);
-      };
+    const handleSearch = (tendency) => {
+      const query = tendency || inputValue; 
+      navigate(`/category?query=${query}`);
+    };
+    const handleSubmit = (event) => {
+      event.preventDefault(); 
+      handleSearch();
+    };
     
       const handleKeyDown = (event) => {
         if (event.key === 'Enter') {
@@ -97,10 +103,10 @@ const Main=()=> {
               Лучшие бесплатные стоковые фото, изображения без роялти и видео от
               талантливых авторов.
             </HeaderText>
-            <SearchForm>
+            <SearchForm onSubmit={handleSubmit}>
               <SearchInputContainer>
                 <SearchInput placeholder="Поиск бесплатных изображений" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} />
-                <CustomNavlink to="/category" onClick={handleSubmit}><SearchButton>
+                <CustomNavlink><SearchButton type="submite" onClick={handleSubmit}>
                   <SvgIcon
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
@@ -116,7 +122,7 @@ const Main=()=> {
             <Tendencies>Тенденции:
                 <TendenciesList>
                 {tendencies.map(category => (
-                    <TendenciesListItem key={category}>{category},</TendenciesListItem>
+                    <TendenciesListItem key={category} onClick={() => handleSearch(category)}>{category},</TendenciesListItem>
                   ))}
                 </TendenciesList>
             </Tendencies>
@@ -126,6 +132,10 @@ const Main=()=> {
           <Author>Автор фото - <span>{authorName}</span></Author>
         </HeaderContent>
       </Header>
+      <GalleryWrapper>
+        <h5>Бесплатные стоковые фото</h5>
+      <ImageGallery/>
+      </GalleryWrapper>
     </Wrapper>
   );
 }
@@ -135,6 +145,9 @@ const Wrapper = styled.div`
   width: 100vw;
   height: 300vh;
 `;
+const GalleryWrapper = styled.div`
+margin:80px;
+`
 const Header = styled.div`
   position: relative;
   z-index: 9;
@@ -165,6 +178,7 @@ const SearchInputContainer = styled.div`
   max-height: 30px;
   align-items: center;
   margin-right: 10px;
+
 `;
 
 const SearchInput = styled.input`
@@ -179,6 +193,10 @@ const SearchInput = styled.input`
   font-weight: 500;
   margin-right: 10px;
   margin-bottom: 10px;
+  :focus {
+  outline: none;
+  border: 1px solid #ddd;
+}
 `;
 const CustomNavlink=styled(NavLink)`
 position:relative;
