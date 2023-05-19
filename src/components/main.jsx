@@ -7,6 +7,7 @@ import { Photo } from "pexels";
 import { createClient } from 'pexels';
 import ImageGallery from "./ImageGallery";
 
+
 const categories = [
     "Automotive",
     "Books",
@@ -58,6 +59,7 @@ const Main=()=> {
     const [tendencies, setTendencies] = useState([]);
     const [imageUrl, setImageUrl] = useState('');
     const [authorName, setAuthorName] = useState('');
+    const [authorURL, setAuthoURL] = useState('');
     const [currentTendency, setCurrentTendency] = useState('');
     const navigate = useNavigate();
 
@@ -73,6 +75,7 @@ const Main=()=> {
         const photo = photos.photos[0];
         setImageUrl(photo.src.large2x);
         setAuthorName(photo.photographer);
+        setAuthoURL(photo.photographer_url)
       });
     }
   }, [currentTendency]);
@@ -129,7 +132,7 @@ const Main=()=> {
           </TextWrapper>
 
           <Img src={imageUrl}></Img>
-          <Author>Автор фото - <span>{authorName}</span></Author>
+          <Author href={authorURL} target="_blank">Автор фото - <span>{authorName}</span></Author>
         </HeaderContent>
       </Header>
       <GalleryWrapper>
@@ -292,11 +295,11 @@ const TendenciesListItem = styled.li`
     color: hsla(0,0%,100%,.7);
   }
 `;
-const Author= styled.div`
+const Author= styled.a`
     position: absolute;
     bottom: 20px;
     right: 20px;
-    
+    text-decoration: none;
     color: hsla(0,0%,100%,.4);
     transition: color 0.3s ease-in-out;
   
