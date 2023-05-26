@@ -2,19 +2,16 @@ import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import { Dropdown, Spinner } from "react-bootstrap";
 import styled from "styled-components";
-import { createClient } from 'pexels';
+import { createClient } from "pexels";
 import { useLocation } from "react-router-dom";
-import axios from 'axios';
+import axios from "axios";
 import like from "../img/like.svg";
 import likeTrue from "../img/liketrue.svg";
 import download from "../img/download.svg";
-const client = createClient(
-  "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf"
-);
-
+const client = createClient("563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf");
+ 
 
 const Category = () => {
-
   const [images, setImages] = useState([]);
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -26,59 +23,41 @@ const Category = () => {
   const [column2Images, setColumn2Images] = useState([]);
   const [column3Images, setColumn3Images] = useState([]);
   const [likes, setLikes] = useState({});
+  const [orientation, setOrietation] = useState('Orientation')
+  const [size, setSize] = useState("Size")
 
 
-
-  useEffect(() => {
-    setQuery(searchParams.get("query"));
-    setImages(() => []);
-  }, [location.search, searchParams]);
- 
-  useEffect(() => {
-    fetchImages();
-  }, [page]);
-
-  useEffect(() => {
-    return () => {
-      setImages(() => []);
-    setPage(1);
-    setLoading(true);
-    setColumn1Images([]);
-    setColumn2Images([]);
-    setColumn3Images([]);
-    fetchImages()
-    };
-    
-  }, [query]);
-
-  useEffect(() => {
-    const handleScroll = () => {
+   const handleScroll = () => {
       if (
         window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 500 &&
+          document.documentElement.offsetHeight - 1 &&
         !loading
       ) {
-        
         setLoading(true);
         setPage((prevPage) => prevPage + 1);
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [loading, page, images]); 
+    useEffect(() => {
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
-
+  useEffect(() => {
   const fetchImages = async () => {
     try {
+      const orientationParam = orientation !== 'Orientation' ? `&orientation=${orientation.toLowerCase()}` : '';
+      const sizeParam = size !== 'Size' ? `&size=${size.toLowerCase()}` : '';
+
       const response = await axios.get(
-        `https://api.pexels.com/v1/search?query=${query}&per_page=15&page=${page}`,
+        `https://api.pexels.com/v1/search?query=${query}&per_page=15&page=${page}${orientationParam}${sizeParam}`,
         {
           headers: {
             Authorization: "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf",
           },
         }
       );
+
       const newImages = response.data.photos.map((photo) => ({
         id: photo.id,
         src: photo.src.large2x,
@@ -97,29 +76,44 @@ const Category = () => {
         return image;
       }
     });
-if(page===1){
-  setImages((prevImages)=>prevImages)
-  setImages(() => [updatedImages]);
-}
-else{
-      setImages((prevImages) => [...prevImages, ...updatedImages]);
-}
-
-      setLoading(false);
-      const imagesByColumn = updatedImages.reduce((acc, image, index) => {
-        if (index % 3 === 0) {
-          acc[0].push(image);
-        } else if (index % 3 === 1) {
-          acc[1].push(image);
-        } else {
-          acc[2].push(image);
-        }
-        return acc;
-      }, [[...column1Images], [...column2Images], [...column3Images]]);
-
-      setColumn1Images(imagesByColumn[0]);
-      setColumn2Images(imagesByColumn[1]);
-      setColumn3Images(imagesByColumn[2]);
+    if (updatedImages && updatedImages.length > 0) {
+      console.log(page)
+      if (query && page===1) {
+        setPage(1);
+        setImages(updatedImages);
+        setLoading(false);
+        const imagesByColumn = updatedImages.reduce((acc, image, index) => {
+          if (index % 3 === 0) {
+            acc[0].push(image);
+          } else if (index % 3 === 1) {
+            acc[1].push(image);
+          } else {
+            acc[2].push(image);
+          }
+          return acc;
+        }, [[], [], []]);
+        setColumn1Images(imagesByColumn[0]);
+        setColumn2Images(imagesByColumn[1]);
+        setColumn3Images(imagesByColumn[2]);
+      } else if (page>1){
+        setImages((prevImages) => [...prevImages, ...updatedImages]);
+        setLoading(false);
+        const imagesByColumn = updatedImages.reduce((acc, image, index) => {
+          if (index % 3 === 0) {
+            acc[0].push(image);
+          } else if (index % 3 === 1) {
+            acc[1].push(image);
+          } else {
+            acc[2].push(image);
+          }
+          return acc;
+        }, [[...column1Images], [...column2Images], [...column3Images]]);
+        setColumn1Images(imagesByColumn[0]);
+        setColumn2Images(imagesByColumn[1]);
+        setColumn3Images(imagesByColumn[2]);
+      }
+      
+    }
 
     } catch (error) {
       console.log('Error fetching images:', error);
@@ -127,7 +121,16 @@ else{
     }
    
   };
+  if (query!==searchParams.get("query")) {
+    setColumn1Images([]);
+    setColumn2Images([]);
+    setColumn3Images([]);
+    setQuery(searchParams.get("query"));
+  }
 
+  fetchImages()
+
+}, [query, page, searchParams]);
 
   const handlerClick = async (photoId) => {
     try {
@@ -160,154 +163,151 @@ else{
         updatedLikes[photoId] = true;
       }
       localStorage.setItem("likes", JSON.stringify(updatedLikes));
-      
+
       return updatedLikes;
     });
   };
-
   return (
     <div>
       <Navbar scrolled={true} query={query} />
       <CategoryContainer>
         <Title>фото {query}</Title>
-        <StyledDropdown variant="light">
-          <StyledToggle variant="light" id="dropdown-basic">
-            Фильтры
-            <svg
-              class="spacing_noMargin__Q_PsJ"
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-            >
-              <path
-                id="filter_list-f2ecbc88f73bd1adcf5a04f89af6f1b9_Icon"
-                d="M10.778,18.955h4.444V16.732H10.778ZM3,7V9.222H23V7Zm3.333,7.088H19.667V11.866H6.333Z"
-                transform="translate(-1 -1)"
-              ></path>
-            </svg>
-          </StyledToggle>
-          <Dropdown.Menu style={{ zIndex: "2" }}>
-            <Dropdown.Item>
-              <Dropdown variant="light">
-                <Dropdown.Toggle variant="light" id="dropdown-basic">
-                  Все ориентации
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item>Все ориентации</Dropdown.Item>
-                  <Dropdown.Item>Горизонтальная</Dropdown.Item>
-                  <Dropdown.Item>Вертикальная</Dropdown.Item>
-                  <Dropdown.Item>Квадратные изображения</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </Dropdown.Item>
-
-            <Dropdown.Item>
-              <Dropdown variant="light">
-                <Dropdown.Toggle variant="light" id="dropdown-basic">
-                  Все размеры
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item>Все размеры</Dropdown.Item>
-                  <Dropdown.Item>Большой</Dropdown.Item>
-                  <Dropdown.Item>Средний</Dropdown.Item>
-                  <Dropdown.Item>Маленький</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-            </Dropdown.Item>
+        <DropdownContainer>
+        <Dropdown>
+          <Dropdown.Toggle variant="light" id="dropdown-basic" >
+           {orientation}
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+          <Dropdown.Item onClick={()=>setOrietation('all orienations')} >all orienations</Dropdown.Item>
+            <Dropdown.Item onClick={()=>setOrietation('landscape')} >landscape</Dropdown.Item>
+            <Dropdown.Item onClick={()=>setOrietation('portrait')} >portrait</Dropdown.Item>
+            <Dropdown.Item onClick={()=>setOrietation('square')}>square</Dropdown.Item>
           </Dropdown.Menu>
-        </StyledDropdown>
+        </Dropdown>
+        <Dropdown>
+          <Dropdown.Toggle variant="light" id="dropdown-basic">
+            {size}
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+          <Dropdown.Item onClick={()=>setSize('all sizes')}>all sizes</Dropdown.Item>
+          <Dropdown.Item onClick={()=>setSize('large')}>large</Dropdown.Item>
+            <Dropdown.Item onClick={()=>setSize('medium')}>medium</Dropdown.Item>
+            <Dropdown.Item onClick={()=>setSize('small')}>small</Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+        </DropdownContainer>
         <ImageGalleryContainer>
-        <Column>
-          {column1Images.map((image) => (
-            <ImageWrapper key={image.id}>
-              <Image src={image.src} alt={image.photographer} />
-              <Overlay>
-              <Button
-                  className="author-button"
-                >
-                  <a href={image.authorURL} target="_blank" style={{textDecoration: "none", color:"white"}}>{image.photographer}</a>
-                </Button>
-                <Button
-                  className="download-button"
-                  onClick={() => handlerClick(image.id)}
-                >
-                  <img src={download} style={{ width: "20px" }}></img>
-                </Button>
-                <Button
-                  className="like-button"
-                  onClick={() => handleLike(image.id)}
-                >
-                  {!likes[image.id] ? (
-                    <img src={like} style={{ width: "20px" }}></img>
-                  ) : (
-                    <img src={likeTrue} style={{ width: "20px" }}></img>
-                  )}
-                </Button>
-              </Overlay>
-            </ImageWrapper>
-          ))}
-        </Column>
-        <Column>
-          {column2Images.map((image) => (
-            <ImageWrapper key={image.id}>
-              <Image src={image.src} alt={image.photographer} />
-              <Overlay>
-              <Button
-                  className="author-button"
-                >
-                  <a href={image.authorURL} target="_blank" style={{textDecoration: "none", color:"white"}}>{image.photographer}</a>
-                </Button>
-              <Button
-                  className="download-button"
-                  onClick={() => handlerClick(image.id)}
-                >
-                  <img src={download} style={{ width: "20px" }}></img>
-                </Button>
-                <Button
-                  className="like-button"
-                  onClick={() => handleLike(image.id)}
-                >
-                  {!likes[image.id]  ? (
-                    <img src={like} style={{ width: "20px" }}></img>
-                  ) : (
-                    <img src={likeTrue} style={{ width: "20px" }}></img>
-                  )}
-                </Button>
-              </Overlay>
-            </ImageWrapper>
-          ))}
-        </Column>
-        <Column>
-          {column3Images.map((image) => (
-            <ImageWrapper key={image.id}>
-              <Image src={image.src} alt={image.photographer} />
-              <Overlay>
-              <Button
-                  className="author-button"
-                >
-                  <a href={image.authorURL} target="_blank" style={{textDecoration: "none", color:"white"}}>{image.photographer}</a>
-                </Button>
-                <Button
-                  className="download-button"
-                  onClick={() => handlerClick(image.id)}
-                >
-                  <img src={download} style={{ width: "20px" }}></img>
-                </Button>
-                <Button
-                  className="like-button"
-                  onClick={() => handleLike(image.id)}
-                >
-                  {!likes[image.id]  ? (
-                    <img src={like} alt="emptylike" style={{ width: "20px" }}></img>
-                  ) : (
-                    <img src={likeTrue} alt="fulllike" style={{ width: "20px" }}></img>
-                  )}
-                </Button>
-              </Overlay>
-            </ImageWrapper>
-          ))}
-        </Column>
-      </ImageGalleryContainer>
+          <Column>
+            {column1Images.map((image) => (
+              <ImageWrapper key={image.id}>
+                <Image src={image.src} alt={image.photographer} />
+                <Overlay>
+                  <Button className="author-button">
+                    <a
+                      href={image.authorURL}
+                      target="_blank"
+                      style={{ textDecoration: "none", color: "white" }}
+                    >
+                      {image.photographer}
+                    </a>
+                  </Button>
+                  <Button
+                    className="download-button"
+                    onClick={() => handlerClick(image.id)}
+                  >
+                    <img src={download} style={{ width: "20px" }}></img>
+                  </Button>
+                  <Button
+                    className="like-button"
+                    onClick={() => handleLike(image.id)}
+                  >
+                    {!likes[image.id] ? (
+                      <img src={like} style={{ width: "20px" }}></img>
+                    ) : (
+                      <img src={likeTrue} style={{ width: "20px" }}></img>
+                    )}
+                  </Button>
+                </Overlay>
+              </ImageWrapper>
+            ))}
+          </Column>
+          <Column>
+            {column2Images.map((image) => (
+              <ImageWrapper key={image.id}>
+                <Image src={image.src} alt={image.photographer} />
+                <Overlay>
+                  <Button className="author-button">
+                    <a
+                      href={image.authorURL}
+                      target="_blank"
+                      style={{ textDecoration: "none", color: "white" }}
+                    >
+                      {image.photographer}
+                    </a>
+                  </Button>
+                  <Button
+                    className="download-button"
+                    onClick={() => handlerClick(image.id)}
+                  >
+                    <img src={download} style={{ width: "20px" }}></img>
+                  </Button>
+                  <Button
+                    className="like-button"
+                    onClick={() => handleLike(image.id)}
+                  >
+                    {!likes[image.id] ? (
+                      <img src={like} style={{ width: "20px" }}></img>
+                    ) : (
+                      <img src={likeTrue} style={{ width: "20px" }}></img>
+                    )}
+                  </Button>
+                </Overlay>
+              </ImageWrapper>
+            ))}
+          </Column>
+          <Column>
+            {column3Images.map((image) => (
+              <ImageWrapper key={image.id}>
+                <Image src={image.src} alt={image.photographer} />
+                <Overlay>
+                  <Button className="author-button">
+                    <a
+                      href={image.authorURL}
+                      target="_blank"
+                      style={{ textDecoration: "none", color: "white" }}
+                    >
+                      {image.photographer}
+                    </a>
+                  </Button>
+                  <Button
+                    className="download-button"
+                    onClick={() => handlerClick(image.id)}
+                  >
+                    <img src={download} style={{ width: "20px" }}></img>
+                  </Button>
+                  <Button
+                    className="like-button"
+                    onClick={() => handleLike(image.id)}
+                  >
+                    {!likes[image.id] ? (
+                      <img
+                        src={like}
+                        alt="emptylike"
+                        style={{ width: "20px" }}
+                      ></img>
+                    ) : (
+                      <img
+                        src={likeTrue}
+                        alt="fulllike"
+                        style={{ width: "20px" }}
+                      ></img>
+                    )}
+                  </Button>
+                </Overlay>
+              </ImageWrapper>
+            ))}
+          </Column>
+        </ImageGalleryContainer>
         {loading && (
           <LoadingIndicator>
             <Spinner animation="border" role="status" />
@@ -316,7 +316,7 @@ else{
       </CategoryContainer>
     </div>
   );
-}
+};
 
 export default Category;
 
@@ -339,9 +339,8 @@ const Title = styled.h1`
   margin-bottom: 0px;
 `;
 const StyledDropdown = styled(Dropdown)`
-  position: absolute;
-  right: 0%;
-  margin-right: 100px;
+  position: relative;
+  z-index: 2;
 `;
 
 const StyledToggle = styled(Dropdown.Toggle)`
@@ -352,10 +351,7 @@ const StyledToggle = styled(Dropdown.Toggle)`
   &::after {
     display: none;
   }
-  &:hover,
-  &:focus,
-  &:active,
-  &.show {
+  &:hover {
     background-color: white;
     color: black;
     border-color: black;
@@ -368,9 +364,12 @@ const StyledToggle = styled(Dropdown.Toggle)`
     transform: rotate(180deg);
   }
 `;
+const StyledInnerDropdown = styled(Dropdown)`
+  position: static !important;
+`;
 
 const ImageGalleryContainer = styled.div`
-  margin-top: 50px;
+  margin-top: 100px;
   display: flex;
   justify-content: center;
   gap: 30px;
@@ -424,7 +423,7 @@ const Button = styled.button`
   &.author-button {
     bottom: 15px;
     left: 15px;
-    background-color: rgba(1,1,1,0);
+    background-color: rgba(1, 1, 1, 0);
     color: #ffffff;
     &:hover {
       filter: brightness(0.9);
@@ -457,3 +456,8 @@ const LoadingIndicator = styled.div`
   align-items: center;
   height: 100px;
 `;
+const DropdownContainer = styled.div`
+  display: flex;
+  position:absolute;
+  right:5%;
+`

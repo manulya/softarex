@@ -4,17 +4,13 @@ import styled from "styled-components";
 
 export default function Navbar(props) {
   const [isScrolled, setIsScrolled] = useState(props.scrolled);
-  const [inputValue, setInputValue] = useState('');
- 
+  const [inputValue, setInputValue] = useState(props.query);
+ const [query,setQuery]=useState(inputValue)
   const navigate = useNavigate()
-  
-  const handleSearch = () => {
-    const query = inputValue; 
-    navigate(`/category?query=${query}`);
-  };
+
   const handleSubmit = (event) => {
     event.preventDefault(); 
-    handleSearch();
+    navigate(`/category?query=${inputValue}`);
   };
   
     const handleKeyDown = (event) => {
@@ -37,7 +33,7 @@ export default function Navbar(props) {
   
         return () => window.removeEventListener("scroll", handleScroll);
       }
-    }, [props.scrolled]);
+    }, [props.scrolled, inputValue]);
   
 
   return (
