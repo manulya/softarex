@@ -3,7 +3,7 @@ import Navbar from "./Navbar";
 import { Dropdown, Spinner } from "react-bootstrap";
 import styled from "styled-components";
 import { createClient } from "pexels";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import like from "../img/like.svg";
 import likeTrue from "../img/liketrue.svg";
@@ -12,30 +12,34 @@ const client = createClient(
   "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf"
 );
 
-
 const Category = () => {
   const location = useLocation();
-const searchParams = new URLSearchParams(location.search);
+  const searchParams = new URLSearchParams(location.search);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState(searchParams.get("query"));
+  const [title, setTitle] = useState(searchParams.get("query"));
   const [column1Images, setColumn1Images] = useState([]);
   const [column2Images, setColumn2Images] = useState([]);
   const [column3Images, setColumn3Images] = useState([]);
   const [likes, setLikes] = useState({});
   const [orientation, setOrietation] = useState("Orientation");
   const [size, setSize] = useState("Size");
+  const [noResults, setNoResults] = useState(false);
+  const navigate = useNavigate();
 
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      setPage(1)
-      setColumn1Images(()=>[])
-      setColumn2Images(()=>[])
-      setColumn3Images(()=>[])
-      setImages([])
-      fetchImages()
+      setPage(1);
+      setColumn1Images(() => []);
+      setColumn2Images(() => []);
+      setColumn3Images(() => []);
+      setImages([]);
+      navigate(`/category?query=${query}`);
+      setTitle(query)
+      fetchImages();
     }
   };
 
@@ -55,102 +59,113 @@ const searchParams = new URLSearchParams(location.search);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const fetchImages = async () => {
+    try {
+      console.log("page", page, query);
+      const orientationParam =
+        orientation !== "Orientation"
+          ? `&orientation=${orientation.toLowerCase()}`
+          : "";
+      const sizeParam = size !== "Size" ? `&size=${size.toLowerCase()}` : "";
 
-    const fetchImages = async () => {
-      try {
-        console.log("page", page, query)
-        const orientationParam =
-          orientation !== "Orientation"
-            ? `&orientation=${orientation.toLowerCase()}`
-            : "";
-        const sizeParam = size !== "Size" ? `&size=${size.toLowerCase()}` : "";
-
-        const response = await axios.get(
-          `https://api.pexels.com/v1/search?query=${query}&per_page=15&page=${page}${orientationParam}${sizeParam}`,
-          {
-            headers: {
-              Authorization:
-                "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf",
-            },
-          }
-        );
-        const newImages = response.data.photos.map((photo) => ({
-          id: photo.id,
-          src: photo.src.large2x,
-          photographer: photo.photographer,
-          authorURL: photo.photographer_url,
-        }));
-
-        const savedLikes = JSON.parse(localStorage.getItem("likes")) || {};
-
-        setLikes(savedLikes);
-
-        const updatedImages = newImages.map((image) => {
-          if (savedLikes[image.id]) {
-            return { ...image, liked: true };
-          } else {
-            return image;
-          }
-        });
-        if (page === 1) {
-       console.log(column1Images)
-
-          setImages(updatedImages);
-          setLoading(false);
-          const imagesByColumn = updatedImages.reduce(
-            (acc, image, index) => {
-              if (index % 3 === 0) {
-                acc[0].push(image);
-              } else if (index % 3 === 1) {
-                acc[1].push(image);
-              } else {
-                acc[2].push(image);
-              }
-              return acc;
-            },
-            [[], [], []]
-          );
-          setColumn1Images(() => [...imagesByColumn[0]]);
-          setColumn2Images(() => [...imagesByColumn[1]]);
-          setColumn3Images(() => [...imagesByColumn[2]]);
+      const response = await axios.get(
+        `https://api.pexels.com/v1/search?query=${query}&per_page=15&page=${page}${orientationParam}${sizeParam}`,
+        {
+          headers: {
+            Authorization:
+              "563492ad6f917000010000014640aabb4e9d420cbe1c0df7daf4c2bf",
+          },
         }
-        else {
-          setImages((prevImages) => [...prevImages, ...updatedImages]);
-          setLoading(false);
-          const imagesByColumn = updatedImages.reduce(
-            (acc, image, index) => {
-              if (index % 3 === 0) {
-                acc[0].push(image);
-              } else if (index % 3 === 1) {
-                acc[1].push(image);
-              } else {
-                acc[2].push(image);
-              }
-              return acc;
-            },
-            [[], [], []]
-          );
-          setColumn1Images((prevColumn1Images) => [...prevColumn1Images, ...imagesByColumn[0]]);
-          setColumn2Images((prevColumn2Images) => [...prevColumn2Images, ...imagesByColumn[1]]);
-          setColumn3Images((prevColumn3Images) => [...prevColumn3Images, ...imagesByColumn[2]]);
+      );
+      const newImages = response.data.photos.map((photo) => ({
+        id: photo.id,
+        src: photo.src.large2x,
+        photographer: photo.photographer,
+        authorURL: photo.photographer_url,
+      }));
+
+      const savedLikes = JSON.parse(localStorage.getItem("likes")) || {};
+
+      setLikes(savedLikes);
+
+      const updatedImages = newImages.map((image) => {
+        if (savedLikes[image.id]) {
+          return { ...image, liked: true };
+        } else {
+          return image;
         }
-        
-      } catch (error) {
-        console.log("Error fetching images:", error);
-        setLoading(false);
+      });
+
+      if (updatedImages.length === 0) {
+        setNoResults(true);
+      } else {
+        setNoResults(false);
       }
-    };
-useEffect(()=>{
-  fetchImages()
-}, [page])
-useEffect(()=>{
-  setPage(1)
-  setColumn1Images(()=>[])
-  setColumn2Images(()=>[])
-  setColumn3Images(()=>[])
-  setImages([])
-  fetchImages()
-}, [orientation,size])
+
+      if (page === 1) {
+        setImages(updatedImages);
+        setLoading(false);
+        const imagesByColumn = updatedImages.reduce(
+          (acc, image, index) => {
+            if (index % 3 === 0) {
+              acc[0].push(image);
+            } else if (index % 3 === 1) {
+              acc[1].push(image);
+            } else {
+              acc[2].push(image);
+            }
+            return acc;
+          },
+          [[], [], []]
+        );
+        setColumn1Images(() => [...imagesByColumn[0]]);
+        setColumn2Images(() => [...imagesByColumn[1]]);
+        setColumn3Images(() => [...imagesByColumn[2]]);
+      } else {
+        setImages((prevImages) => [...prevImages, ...updatedImages]);
+        setLoading(false);
+        const imagesByColumn = updatedImages.reduce(
+          (acc, image, index) => {
+            if (index % 3 === 0) {
+              acc[0].push(image);
+            } else if (index % 3 === 1) {
+              acc[1].push(image);
+            } else {
+              acc[2].push(image);
+            }
+            return acc;
+          },
+          [[], [], []]
+        );
+        setColumn1Images((prevColumn1Images) => [
+          ...prevColumn1Images,
+          ...imagesByColumn[0],
+        ]);
+        setColumn2Images((prevColumn2Images) => [
+          ...prevColumn2Images,
+          ...imagesByColumn[1],
+        ]);
+        setColumn3Images((prevColumn3Images) => [
+          ...prevColumn3Images,
+          ...imagesByColumn[2],
+        ]);
+      }
+    } catch (error) {
+      console.log("Error fetching images:", error);
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchImages();
+  }, [page]);
+  useEffect(() => {
+    setPage(1);
+    setColumn1Images(() => []);
+    setColumn2Images(() => []);
+    setColumn3Images(() => []);
+    setImages([]);
+    fetchImages();
+  }, [orientation, size]);
   const handlerClick = async (photoId) => {
     try {
       const photo = await client.photos.show({ id: photoId });
@@ -196,10 +211,22 @@ useEffect(()=>{
           <SearchInput
             id="search"
             value={query}
-            onChange={(e)=>setQuery(e.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <SearchButton onClick={fetchImages}>
+          <SearchButton
+            onClick={(event) => {
+              event.preventDefault();
+              setPage(1);
+              setColumn1Images(() => []);
+              setColumn2Images(() => []);
+              setColumn3Images(() => []);
+              setImages([]);
+              setTitle(query)
+              navigate(`/category?query=${query}`);
+              fetchImages();
+            }}
+          >
             <SvgIcon
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -212,7 +239,7 @@ useEffect(()=>{
         </SearchContainer>
       </NavbarContainer>
       <CategoryContainer>
-        <Title>фото {query}</Title>
+        <Title>фото {title}</Title>
         <DropdownContainer>
           <Dropdown>
             <Dropdown.Toggle variant="light" id="dropdown-basic">
@@ -254,6 +281,7 @@ useEffect(()=>{
           </Dropdown>
         </DropdownContainer>
         <ImageGalleryContainer>
+          {noResults && <h1>Ничего не найдено</h1>}
           <Column>
             {column1Images.map((image) => (
               <ImageWrapper key={image.id}>
