@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 export default function Navbar(props) {
@@ -7,10 +7,13 @@ export default function Navbar(props) {
   const [inputValue, setInputValue] = useState(props.query);
  const [query,setQuery]=useState(inputValue)
   const navigate = useNavigate()
-
+  
   const handleSubmit = (event) => {
+
     event.preventDefault(); 
+
     navigate(`/category?query=${inputValue}`);
+    
   };
   
     const handleKeyDown = (event) => {
@@ -35,7 +38,9 @@ export default function Navbar(props) {
       }
     }, [props.scrolled, inputValue]);
   
-
+    useEffect(() => {
+      setQuery(inputValue);
+    }, [inputValue]);
   return (
     <NavbarContainer isScrolled={isScrolled}>
 <CustomNavlink to="/">{isScrolled?(<Logo src="https://images.pexels.com/lib/api/pexels.png" />):(<Logo src="https://images.pexels.com/lib/api/pexels-white.png"/>)} </CustomNavlink>
